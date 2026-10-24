@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { formatShortDate } from "@/lib/format";
+import { formatNumber, formatShortDate } from "@/lib/format";
 
 export type SeriesPoint = {
   t: number;
@@ -61,9 +61,23 @@ export function TimeSeriesChart({
           />
           <YAxis
             tick={{ fill: "#78716c", fontSize: 11 }}
+            tickFormatter={(v) => formatNumber(Number(v))}
             axisLine={false}
             tickLine={false}
-            width={42}
+            width={48}
+            domain={([dataMin, dataMax]) => {
+              if (
+                typeof dataMin !== "number" ||
+                typeof dataMax !== "number" ||
+                !Number.isFinite(dataMin) ||
+                !Number.isFinite(dataMax)
+              ) {
+                return [dataMin, dataMax];
+              }
+              const span = dataMax - dataMin;
+              const pad = span === 0 ? Math.max(Math.abs(dataMin) * 0.002, 0.05) : span * 0.12;
+              return [dataMin - pad, dataMax + pad];
+            }}
           />
           <Tooltip
             contentStyle={{
@@ -82,7 +96,8 @@ export function TimeSeriesChart({
             formatter={(value, name) => {
               const s = series.find((x) => x.name === name || x.dataKey === name);
               const unit = s?.unit ? ` ${s.unit}` : "";
-              return [`${value}${unit}`, s?.name ?? String(name)];
+              const num = typeof value === "number" ? formatNumber(value) : String(value);
+              return [`${num}${unit}`, s?.name ?? String(name)];
             }}
           />
           {series.length > 1 ? (
