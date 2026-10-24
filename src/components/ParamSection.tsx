@@ -24,7 +24,7 @@ export function ChartPanel({
   const numeric = meta.filter((m) => m.kind === "number");
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-[var(--line)] bg-white/55 p-4 shadow-[0_1px_0_rgba(15,61,46,0.04)] backdrop-blur-sm sm:p-5">
+    <div className="flex h-full flex-col rounded-2xl border border-[var(--line)] bg-white/55 p-4 shadow-[0_1px_0_rgba(68,48,28,0.05)] backdrop-blur-sm sm:p-5">
       <div className="mb-3">
         <h2 className="font-[family-name:var(--font-display)] text-xl text-[var(--ink)] sm:text-2xl">
           {title}
@@ -103,7 +103,7 @@ export function ParamGrid({
         {numeric.map((m) => (
           <div
             key={m.key}
-            className="rounded-2xl border border-[var(--line)] bg-white/55 p-4 shadow-[0_1px_0_rgba(15,61,46,0.04)] backdrop-blur-sm"
+            className="rounded-2xl border border-[var(--line)] bg-white/55 p-4 shadow-[0_1px_0_rgba(68,48,28,0.05)] backdrop-blur-sm"
           >
             <h3 className="mb-2 text-sm font-medium text-[var(--ink)]">
               {m.title}
