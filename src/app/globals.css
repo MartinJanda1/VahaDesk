@@ -1,17 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f3f6f2;
-  --foreground: #14241c;
-  --ink: #14241c;
-  --ink-soft: #2a3d33;
-  --muted: #5c6b63;
-  --line: rgba(20, 36, 28, 0.12);
-  --teal: #0f766e;
-  --teal-deep: #0b5a54;
-  --teal-soft: #d8ebe7;
-  --sand: #e8e0d4;
-  --glow: #c5d9c8;
+  --background: #f6f1ea;
+  --foreground: #1c1917;
+  --ink: #1c1917;
+  --ink-soft: #44403c;
+  --muted: #78716c;
+  --line: rgba(68, 48, 28, 0.14);
+  /* primary blue — links & active UI */
+  --accent: #2563eb;
+  --accent-deep: #1d4ed8;
+  --accent-soft: #dbe7ff;
+  /* legacy aliases used across components */
+  --teal: var(--accent);
+  --teal-deep: var(--accent-deep);
+  --teal-soft: var(--accent-soft);
+  --sand: #efe6d8;
+  --glow: #f0e4d0;
 }
 
 @theme inline {
@@ -29,10 +34,10 @@ body {
 
 .atmosphere {
   background:
-    radial-gradient(ellipse 90% 60% at 10% -10%, rgba(15, 118, 110, 0.18), transparent 55%),
-    radial-gradient(ellipse 70% 50% at 95% 5%, rgba(197, 217, 200, 0.55), transparent 50%),
-    radial-gradient(ellipse 50% 40% at 50% 100%, rgba(232, 224, 212, 0.7), transparent 55%),
-    linear-gradient(165deg, #eef3ec 0%, #f6f3ed 45%, #e9efe8 100%);
+    radial-gradient(ellipse 90% 55% at 8% -8%, rgba(37, 99, 235, 0.14), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 96% 0%, rgba(240, 210, 170, 0.55), transparent 52%),
+    radial-gradient(ellipse 55% 40% at 50% 100%, rgba(232, 214, 190, 0.75), transparent 55%),
+    linear-gradient(165deg, #f8f3ec 0%, #f3ebe1 48%, #efe6d9 100%);
 }
 
 .atmosphere::before {
@@ -40,7 +45,7 @@ body {
   pointer-events: none;
   position: fixed;
   inset: 0;
-  opacity: 0.35;
+  opacity: 0.3;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
   mix-blend-mode: soft-light;
   z-index: 0;

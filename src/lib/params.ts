@@ -38,7 +38,7 @@ export const PARAM_META: ParamMeta[] = [
     longHelp:
       "Hmotnost na domácí váze není diagnostika. Sledujte trend přes týdny, ne jedno měření. Stejná denní doba a podobné podmínky (nalačno / po toaletě) dávají smysluplnější křivku.",
     section: "weight",
-    color: "#0f766e",
+    color: "#2563eb",
     kind: "number",
   },
   {
@@ -62,7 +62,7 @@ export const PARAM_META: ParamMeta[] = [
     longHelp:
       "Procentuální svalová hmota na BIA váze je odhad. Po tréninku nebo při dehydrataci může klesnout, aniž byste „ztratili sval“. Sledujte trend společně s hmotností a tréninkovým plánem.",
     section: "composition",
-    color: "#1d4ed8",
+    color: "#1e40af",
     kind: "number",
   },
   {
@@ -74,7 +74,7 @@ export const PARAM_META: ParamMeta[] = [
     longHelp:
       "Voda tvoří velkou část hmotnosti. Ranní měření po toaletě bývá stabilnější. Výkyvy o několik procent mezi dny jsou běžné a často vysvětlují i skoky v tuku nebo svalech.",
     section: "composition",
-    color: "#0284c7",
+    color: "#3b82f6",
     kind: "number",
   },
   {
@@ -85,7 +85,7 @@ export const PARAM_META: ParamMeta[] = [
     longHelp:
       "BIA odhad bílkovin souvisí se svalovou hmotou a hydratací. Nepoužívejte ho jako přesný laboratorní marker; slouží spíš jako doplněk k celkovému obrazu.",
     section: "other",
-    color: "#0e7490",
+    color: "#1d4ed8",
     kind: "number",
   },
   {
@@ -96,7 +96,7 @@ export const PARAM_META: ParamMeta[] = [
     longHelp:
       "Kostní hmota na spotřebitelské váze je hrubý odhad. Skutečné změny probíhají měsíce až roky. Denní výkyvy ignorujte.",
     section: "other",
-    color: "#78716c",
+    color: "#a8a29e",
     kind: "number",
   },
   {
@@ -108,7 +108,7 @@ export const PARAM_META: ParamMeta[] = [
     longHelp:
       "BMI je populační ukazatel, ne individuální diagnóza. U sportovců s vyšší svalovou hmotou může být „vysoké“ bez vysokého tuku. Sledujte spíš složení těla a obvod pasu.",
     section: "other",
-    color: "#57534e",
+    color: "#78716c",
     kind: "number",
   },
   {
@@ -130,7 +130,7 @@ export const PARAM_META: ParamMeta[] = [
     longHelp:
       "Aktivní (tukuprostá) hmota zahrnuje svaly, orgány, kosti a vodu. Roste při nárůstu svalů nebo hydratace; při redukci tuku může zůstat stabilní i když celková váha klesá.",
     section: "other",
-    color: "#0d9488",
+    color: "#3b82f6",
     kind: "number",
   },
   {
@@ -141,7 +141,7 @@ export const PARAM_META: ParamMeta[] = [
     longHelp:
       "AMR = BMR × faktor aktivity (podle nastavení váhy/profilu). Pokud se mění jen málo, zatímco váha kolísá, jde spíš o model než o reálný výdej z tréninku.",
     section: "other",
-    color: "#ca8a04",
+    color: "#d97706",
     kind: "number",
   },
   {
@@ -164,7 +164,7 @@ export const PARAM_META: ParamMeta[] = [
     longHelp:
       "TrueLife FitScale exportuje sloupec „Kosterní svalstvo(%)“, ale hodnoty často obsahují jednotku kg. VahaDesk je ukládá jako kilogramy. Stejně jako u ostatních BIA metrik platí: trend > jedno měření.",
     section: "other",
-    color: "#2563eb",
+    color: "#1e40af",
     kind: "number",
   },
   {
@@ -176,7 +176,7 @@ export const PARAM_META: ParamMeta[] = [
     longHelp:
       "Viscerální tuk obklopuje orgány. Domácí váha dává index, ne CT/MRI. Pokud je dlouhodobě vysoký, řešte pohyb, spánek a stravu — ideálně s lékařem při dalších rizicích.",
     section: "other",
-    color: "#dc2626",
+    color: "#b91c1c",
     kind: "number",
   },
   {
@@ -187,7 +187,7 @@ export const PARAM_META: ParamMeta[] = [
     longHelp:
       "Somatotyp z váhy je zjednodušená kategorie z naměřených hodnot. Nenahrazuje lékařské vyšetření. Používejte jako orientační popisek k číslům výše.",
     section: "other",
-    color: "#44403c",
+    color: "#57534e",
     kind: "text",
   },
 ];

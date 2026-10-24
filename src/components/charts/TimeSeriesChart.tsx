@@ -49,18 +49,18 @@ export function TimeSeriesChart({
     <div style={{ width: "100%", height }} className="animate-fade-in">
       <ResponsiveContainer>
         <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-          <CartesianGrid stroke="rgba(15, 61, 46, 0.08)" strokeDasharray="4 6" />
+          <CartesianGrid stroke="rgba(68, 48, 28, 0.08)" strokeDasharray="4 6" />
           <XAxis
             dataKey="t"
             type="number"
             domain={["dataMin", "dataMax"]}
             tickFormatter={(v) => formatShortDate(new Date(v))}
-            tick={{ fill: "#5c6b63", fontSize: 11 }}
-            axisLine={{ stroke: "rgba(15,61,46,0.15)" }}
+            tick={{ fill: "#78716c", fontSize: 11 }}
+            axisLine={{ stroke: "rgba(68,48,28,0.15)" }}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: "#5c6b63", fontSize: 11 }}
+            tick={{ fill: "#78716c", fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             width={42}
@@ -68,8 +68,8 @@ export function TimeSeriesChart({
           <Tooltip
             contentStyle={{
               borderRadius: 10,
-              border: "1px solid rgba(15,61,46,0.12)",
-              background: "rgba(255,252,247,0.96)",
+              border: "1px solid rgba(68,48,28,0.12)",
+              background: "rgba(255,250,244,0.97)",
               fontSize: 13,
             }}
             labelFormatter={(v) =>
