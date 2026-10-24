@@ -5,22 +5,17 @@ import { Dashboard } from "@/components/Dashboard";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getProfile, listMeasurements } from "@/db/store";
 
-async function ProfileDashboard({ id }: { id: string }) {
-  const profile = await getProfile(id);
-  if (!profile) notFound();
-  const measurements = await listMeasurements(id);
-  return <Dashboard profile={profile} measurements={measurements} />;
-}
-
-export default async function ProfilePage({
+async function ProfileDashboard({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const profile = await getProfile(id);
+  if (!profile) notFound();
+  const measurements = await listMeasurements(id);
   return (
     <>
-      <SiteHeader />
       <div className="px-5 pt-1 sm:px-8">
         <Link
           href="/"
@@ -29,6 +24,19 @@ export default async function ProfilePage({
           ← Všechny profily
         </Link>
       </div>
+      <Dashboard profile={profile} measurements={measurements} />
+    </>
+  );
+}
+
+export default function ProfilePage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <>
+      <SiteHeader />
       <Suspense
         fallback={
           <div className="px-5 py-16 text-[var(--muted)] sm:px-8">
@@ -36,7 +44,7 @@ export default async function ProfilePage({
           </div>
         }
       >
-        <ProfileDashboard id={id} />
+        <ProfileDashboard params={params} />
       </Suspense>
     </>
   );

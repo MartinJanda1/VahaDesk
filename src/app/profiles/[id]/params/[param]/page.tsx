@@ -7,12 +7,11 @@ import { formatDateTime, formatValue } from "@/lib/format";
 import { isParamKey, PARAM_BY_KEY } from "@/lib/params";
 
 async function ParamDetail({
-  profileId,
-  param,
+  params,
 }: {
-  profileId: string;
-  param: string;
+  params: Promise<{ id: string; param: string }>;
 }) {
+  const { id: profileId, param } = await params;
   if (!isParamKey(param)) notFound();
   const meta = PARAM_BY_KEY[param];
   const profile = await getProfile(profileId);
@@ -70,12 +69,11 @@ async function ParamDetail({
   );
 }
 
-export default async function ParamPage({
+export default function ParamPage({
   params,
 }: {
   params: Promise<{ id: string; param: string }>;
 }) {
-  const { id, param } = await params;
   return (
     <>
       <SiteHeader />
@@ -86,7 +84,7 @@ export default async function ParamPage({
           </div>
         }
       >
-        <ParamDetail profileId={id} param={param} />
+        <ParamDetail params={params} />
       </Suspense>
     </>
   );
