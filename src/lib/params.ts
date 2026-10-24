@@ -38,7 +38,7 @@ export const PARAM_META: ParamMeta[] = [
     longHelp:
       "Hmotnost na domácí váze není diagnostika. Sledujte trend přes týdny, ne jedno měření. Stejná denní doba a podobné podmínky (nalačno / po toaletě) dávají smysluplnější křivku.",
     section: "weight",
-    color: "#2563eb",
+    color: "#0ea5e9", // sky-500
     kind: "number",
   },
   {

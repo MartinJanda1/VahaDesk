@@ -25,7 +25,7 @@ export function ProfileForm() {
           name="name"
           required
           placeholder="např. Martin"
-          className="w-full rounded-lg border border-[var(--line)] bg-white/80 px-3.5 py-2.5 text-[var(--ink)] outline-none ring-[var(--teal)]/30 transition focus:ring-2"
+          className="w-full rounded-lg border border-[var(--line)] bg-white/80 px-3.5 py-2.5 text-[var(--ink)] outline-none ring-sky-500/30 transition focus:ring-2"
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -41,7 +41,7 @@ export function ProfileForm() {
             max={120}
             required
             placeholder="35"
-            className="w-full rounded-lg border border-[var(--line)] bg-white/80 px-3.5 py-2.5 outline-none ring-[var(--teal)]/30 focus:ring-2"
+            className="w-full rounded-lg border border-[var(--line)] bg-white/80 px-3.5 py-2.5 outline-none ring-sky-500/30 focus:ring-2"
           />
         </div>
         <div className="space-y-1.5">
@@ -59,7 +59,7 @@ export function ProfileForm() {
             max={250}
             required
             placeholder="175"
-            className="w-full rounded-lg border border-[var(--line)] bg-white/80 px-3.5 py-2.5 outline-none ring-[var(--teal)]/30 focus:ring-2"
+            className="w-full rounded-lg border border-[var(--line)] bg-white/80 px-3.5 py-2.5 outline-none ring-sky-500/30 focus:ring-2"
           />
         </div>
       </div>
@@ -72,13 +72,13 @@ export function ProfileForm() {
           name="csv"
           type="file"
           accept=".csv,text/csv"
-          className="block w-full text-sm text-[var(--muted)] file:mr-3 file:rounded-md file:border-0 file:bg-[var(--teal-soft)] file:px-3 file:py-2 file:text-sm file:font-medium file:text-[var(--teal-deep)]"
+          className="block w-full text-sm text-[var(--muted)] file:mr-3 file:rounded-md file:border-0 file:bg-sky-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-sky-700"
         />
         <p className="text-xs text-[var(--muted)]">
           Volitelné — CSV můžete nahrát i později. Ukázka:{" "}
           <a
             href="/samples/truelife-fitscale-sample.csv"
-            className="underline decoration-[var(--teal)]/40 underline-offset-2 hover:text-[var(--teal)]"
+            className="underline decoration-sky-500/40 underline-offset-2 hover:text-sky-500"
           >
             sample CSV
           </a>
@@ -93,7 +93,7 @@ export function ProfileForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-lg bg-[var(--teal)] px-4 py-3 font-medium text-white transition hover:bg-[var(--teal-deep)] disabled:opacity-60"
+        className="w-full rounded-lg bg-sky-500 px-4 py-3 font-medium text-white transition hover:bg-sky-600 disabled:opacity-60"
       >
         {pending ? "Ukládám…" : "Vytvořit profil"}
       </button>

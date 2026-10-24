@@ -165,7 +165,7 @@ function HelpBlock({
       </p>
       <Link
         href={`/profiles/${profileId}/params/${meta.key}`}
-        className={`mt-1 inline-block font-medium text-[var(--teal)] underline-offset-2 hover:underline ${
+        className={`mt-1 inline-block font-medium text-sky-500 underline-offset-2 hover:underline ${
           compact ? "text-xs" : "text-sm"
         }`}
       >

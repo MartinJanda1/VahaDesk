@@ -19,7 +19,7 @@ async function ProfileDashboard({
       <div className="px-5 pt-1 sm:px-8">
         <Link
           href="/"
-          className="text-sm text-[var(--muted)] hover:text-[var(--teal)]"
+          className="text-sm text-[var(--muted)] hover:text-sky-500"
         >
           ← Všechny profily
         </Link>

@@ -23,7 +23,7 @@ async function ProfileList() {
         <div className="animate-rise mt-8 [animation-delay:220ms]">
           <Link
             href="/profiles/new"
-            className="inline-flex rounded-lg bg-[var(--teal)] px-5 py-3 font-medium text-white shadow-sm transition hover:bg-[var(--teal-deep)]"
+            className="inline-flex rounded-lg bg-sky-500 px-5 py-3 font-medium text-white shadow-sm transition hover:bg-sky-600"
           >
             Přidat první profil
           </Link>
@@ -51,7 +51,7 @@ async function ProfileList() {
           >
             <Link
               href={`/profiles/${p.id}`}
-              className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--line)] bg-white/55 px-5 py-4 transition hover:border-[var(--teal)]/40 hover:bg-white/80"
+              className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--line)] bg-white/55 px-5 py-4 transition hover:border-sky-500/40 hover:bg-white/80"
             >
               <div>
                 <p className="font-[family-name:var(--font-display)] text-xl text-[var(--ink)]">
@@ -62,7 +62,7 @@ async function ProfileList() {
                   {formatDateTime(new Date(p.createdAt))}
                 </p>
               </div>
-              <span className="text-[var(--teal)]">→</span>
+              <span className="text-sky-500">→</span>
             </Link>
           </li>
         ))}

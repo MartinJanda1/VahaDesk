@@ -22,7 +22,7 @@ async function ParamDetail({
     <main className="mx-auto max-w-2xl px-5 pb-20 pt-4 sm:px-8">
       <Link
         href={`/profiles/${profileId}`}
-        className="text-sm text-[var(--muted)] hover:text-[var(--teal)]"
+        className="text-sm text-[var(--muted)] hover:text-sky-500"
       >
         ← Zpět na dashboard ({profile.name})
       </Link>

@@ -9,7 +9,7 @@ export default function NewProfilePage() {
       <main className="mx-auto w-full max-w-xl px-5 pb-20 pt-6 sm:px-8">
         <Link
           href="/"
-          className="text-sm text-[var(--muted)] hover:text-[var(--teal)]"
+          className="text-sm text-[var(--muted)] hover:text-sky-500"
         >
           ← Zpět na profily
         </Link>

@@ -8,7 +8,7 @@ export function SiteHeader({ subtle = false }: { subtle?: boolean }) {
       }`}
     >
       <Link href="/" className="group flex items-baseline gap-2">
-        <span className="font-[family-name:var(--font-display)] text-2xl tracking-tight text-[var(--ink)] transition-colors group-hover:text-[var(--teal)] sm:text-3xl">
+        <span className="font-[family-name:var(--font-display)] text-2xl tracking-tight text-[var(--ink)] transition-colors group-hover:text-sky-500 sm:text-3xl">
           VahaDesk
         </span>
         <span className="hidden text-xs uppercase tracking-[0.18em] text-[var(--muted)] sm:inline">
@@ -18,7 +18,7 @@ export function SiteHeader({ subtle = false }: { subtle?: boolean }) {
       <nav className="flex items-center gap-3 text-sm">
         <Link
           href="/profiles/new"
-          className="rounded-md bg-[var(--teal)] px-3.5 py-2 font-medium text-white shadow-sm transition hover:bg-[var(--teal-deep)]"
+          className="rounded-md bg-sky-500 px-3.5 py-2 font-medium text-white shadow-sm transition hover:bg-sky-600"
         >
           Přidat profil
         </Link>

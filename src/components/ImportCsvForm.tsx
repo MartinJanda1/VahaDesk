@@ -52,8 +52,8 @@ export function ImportCsvForm({
           required
           className={
             compact
-              ? "max-w-[14rem] text-xs file:mr-2 file:rounded-md file:border-0 file:bg-[var(--teal-soft)] file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-[var(--teal-deep)]"
-              : "block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-[var(--teal-soft)] file:px-3 file:py-2 file:text-sm file:font-medium file:text-[var(--teal-deep)]"
+              ? "max-w-[14rem] text-xs file:mr-2 file:rounded-md file:border-0 file:bg-sky-100 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-sky-700"
+              : "block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-sky-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-sky-700"
           }
         />
         <button
@@ -61,8 +61,8 @@ export function ImportCsvForm({
           disabled={pending}
           className={
             compact
-              ? "shrink-0 rounded-md bg-[var(--teal)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--teal-deep)] disabled:opacity-60"
-              : "shrink-0 rounded-lg border border-[var(--line)] bg-white/70 px-4 py-2.5 text-sm font-medium transition hover:border-[var(--teal)] hover:text-[var(--teal)] disabled:opacity-60"
+              ? "shrink-0 rounded-md bg-sky-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-sky-600 disabled:opacity-60"
+              : "shrink-0 rounded-lg border border-[var(--line)] bg-white/70 px-4 py-2.5 text-sm font-medium transition hover:border-sky-500 hover:text-sky-500 disabled:opacity-60"
           }
         >
           {pending ? "Import…" : compact ? "Import CSV" : "Importovat"}
@@ -71,7 +71,7 @@ export function ImportCsvForm({
       {state?.message ? (
         <p
           className={`text-xs ${compact ? "text-right" : "text-sm sm:basis-full"} ${
-            state.ok ? "text-[var(--teal-deep)]" : "text-red-700"
+            state.ok ? "text-sky-600" : "text-red-700"
           }`}
         >
           {state.message}

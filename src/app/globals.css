@@ -7,14 +7,10 @@
   --ink-soft: #44403c;
   --muted: #78716c;
   --line: rgba(68, 48, 28, 0.14);
-  /* primary blue — links & active UI */
-  --accent: #2563eb;
-  --accent-deep: #1d4ed8;
-  --accent-soft: #dbe7ff;
-  /* legacy aliases used across components */
-  --teal: var(--accent);
-  --teal-deep: var(--accent-deep);
-  --teal-soft: var(--accent-soft);
+  /* Tailwind sky — active UI (sky-500 / sky-600 / sky-100) */
+  --accent: var(--color-sky-500);
+  --accent-deep: var(--color-sky-600);
+  --accent-soft: var(--color-sky-100);
   --sand: #efe6d8;
   --glow: #f0e4d0;
 }
@@ -34,7 +30,7 @@ body {
 
 .atmosphere {
   background:
-    radial-gradient(ellipse 90% 55% at 8% -8%, rgba(37, 99, 235, 0.14), transparent 55%),
+    radial-gradient(ellipse 90% 55% at 8% -8%, color-mix(in oklab, var(--color-sky-500) 18%, transparent), transparent 55%),
     radial-gradient(ellipse 70% 50% at 96% 0%, rgba(240, 210, 170, 0.55), transparent 52%),
     radial-gradient(ellipse 55% 40% at 50% 100%, rgba(232, 214, 190, 0.75), transparent 55%),
     linear-gradient(165deg, #f8f3ec 0%, #f3ebe1 48%, #efe6d9 100%);
