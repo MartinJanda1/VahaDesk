@@ -2,14 +2,15 @@ import Link from "next/link";
 import type { ParamMeta } from "@/lib/params";
 import { TimeSeriesChart, type SeriesPoint } from "./charts/TimeSeriesChart";
 
-export function ParamSection({
+export function ChartPanel({
   profileId,
   title,
   description,
   meta,
   data,
   multi,
-  large,
+  height = 280,
+  compactHelp,
 }: {
   profileId: string;
   title: string;
@@ -17,71 +18,120 @@ export function ParamSection({
   meta: ParamMeta[];
   data: SeriesPoint[];
   multi?: boolean;
-  large?: boolean;
+  height?: number;
+  compactHelp?: boolean;
 }) {
   const numeric = meta.filter((m) => m.kind === "number");
 
   return (
-    <section className="animate-rise space-y-3">
+    <div className="flex h-full flex-col rounded-2xl border border-[var(--line)] bg-white/55 p-4 shadow-[0_1px_0_rgba(15,61,46,0.04)] backdrop-blur-sm sm:p-5">
+      <div className="mb-3">
+        <h2 className="font-[family-name:var(--font-display)] text-xl text-[var(--ink)] sm:text-2xl">
+          {title}
+        </h2>
+        {description ? (
+          <p className="mt-1 text-sm text-[var(--muted)]">{description}</p>
+        ) : null}
+      </div>
+      <TimeSeriesChart
+        data={data}
+        height={height}
+        series={
+          multi
+            ? numeric.map((m) => ({
+                dataKey: m.key,
+                name: m.title,
+                color: m.color,
+                unit: m.unit,
+              }))
+            : numeric.slice(0, 1).map((m) => ({
+                dataKey: m.key,
+                name: m.title,
+                color: m.color,
+                unit: m.unit,
+              }))
+        }
+      />
+      <div
+        className={`mt-3 grid gap-2 ${
+          compactHelp && meta.length > 1 ? "sm:grid-cols-1 lg:grid-cols-3" : ""
+        }`}
+      >
+        {meta
+          .filter((m) => m.kind === "number")
+          .map((m) => (
+            <HelpBlock
+              key={m.key}
+              profileId={profileId}
+              meta={m}
+              compact={compactHelp}
+            />
+          ))}
+      </div>
+    </div>
+  );
+}
+
+export function ParamGrid({
+  profileId,
+  title,
+  description,
+  meta,
+  data,
+}: {
+  profileId: string;
+  title: string;
+  description?: string;
+  meta: ParamMeta[];
+  data: SeriesPoint[];
+}) {
+  const numeric = meta.filter((m) => m.kind === "number");
+
+  return (
+    <section className="animate-rise space-y-4">
       <div>
         <h2 className="font-[family-name:var(--font-display)] text-2xl text-[var(--ink)] sm:text-3xl">
           {title}
         </h2>
         {description ? (
-          <p className="mt-1 max-w-2xl text-sm text-[var(--muted)] sm:text-base">
+          <p className="mt-1 max-w-3xl text-sm text-[var(--muted)] sm:text-base">
             {description}
           </p>
         ) : null}
       </div>
-
-      {multi && numeric.length > 1 ? (
-        <div className="rounded-2xl border border-[var(--line)] bg-white/55 p-4 shadow-[0_1px_0_rgba(15,61,46,0.04)] backdrop-blur-sm sm:p-5">
-          <TimeSeriesChart
-            data={data}
-            height={large ? 320 : 260}
-            series={numeric.map((m) => ({
-              dataKey: m.key,
-              name: m.title,
-              color: m.color,
-              unit: m.unit,
-            }))}
-          />
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            {meta.map((m) => (
-              <HelpBlock key={m.key} profileId={profileId} meta={m} />
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {meta.map((m) => (
-            <div
-              key={m.key}
-              className="rounded-2xl border border-[var(--line)] bg-white/55 p-4 shadow-[0_1px_0_rgba(15,61,46,0.04)] backdrop-blur-sm sm:p-5"
-            >
-              {m.kind === "number" ? (
-                <TimeSeriesChart
-                  data={data}
-                  height={large ? 300 : 220}
-                  series={[
-                    {
-                      dataKey: m.key,
-                      name: m.title,
-                      color: m.color,
-                      unit: m.unit,
-                    },
-                  ]}
-                />
-              ) : (
-                <TextTimeline data={data} dataKey={m.key} />
-              )}
-              <div className="mt-3">
-                <HelpBlock profileId={profileId} meta={m} />
-              </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {numeric.map((m) => (
+          <div
+            key={m.key}
+            className="rounded-2xl border border-[var(--line)] bg-white/55 p-4 shadow-[0_1px_0_rgba(15,61,46,0.04)] backdrop-blur-sm"
+          >
+            <h3 className="mb-2 text-sm font-medium text-[var(--ink)]">
+              {m.title}
+              {m.unit ? (
+                <span className="font-normal text-[var(--muted)]">
+                  {" "}
+                  ({m.unit})
+                </span>
+              ) : null}
+            </h3>
+            <TimeSeriesChart
+              data={data}
+              height={180}
+              series={[
+                {
+                  dataKey: m.key,
+                  name: m.title,
+                  color: m.color,
+                  unit: m.unit,
+                },
+              ]}
+            />
+            <div className="mt-2">
+              <HelpBlock profileId={profileId} meta={m} compact />
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
@@ -89,64 +139,38 @@ export function ParamSection({
 function HelpBlock({
   profileId,
   meta,
+  compact,
 }: {
   profileId: string;
   meta: ParamMeta;
+  compact?: boolean;
 }) {
   return (
     <div>
-      <p className="text-sm leading-relaxed text-[var(--ink-soft)]">
-        <span className="font-medium text-[var(--ink)]">{meta.title}</span>
-        {meta.unit ? (
-          <span className="text-[var(--muted)]"> ({meta.unit})</span>
+      <p
+        className={`leading-relaxed text-[var(--ink-soft)] ${
+          compact ? "text-xs line-clamp-2" : "text-sm"
+        }`}
+      >
+        {!compact ? (
+          <>
+            <span className="font-medium text-[var(--ink)]">{meta.title}</span>
+            {meta.unit ? (
+              <span className="text-[var(--muted)]"> ({meta.unit})</span>
+            ) : null}
+            {" — "}
+          </>
         ) : null}
-        {" — "}
         {meta.shortHelp}
       </p>
       <Link
         href={`/profiles/${profileId}/params/${meta.key}`}
-        className="mt-1 inline-block text-sm font-medium text-[var(--teal)] underline-offset-2 hover:underline"
+        className={`mt-1 inline-block font-medium text-[var(--teal)] underline-offset-2 hover:underline ${
+          compact ? "text-xs" : "text-sm"
+        }`}
       >
-        Detail a delší vysvětlení →
+        Detail →
       </Link>
     </div>
-  );
-}
-
-function TextTimeline({
-  data,
-  dataKey,
-}: {
-  data: SeriesPoint[];
-  dataKey: string;
-}) {
-  const items = data
-    .map((d) => ({ t: d.t, v: d[dataKey] }))
-    .filter((x) => x.v != null && x.v !== "");
-  if (!items.length) {
-    return (
-      <p className="py-8 text-center text-sm text-[var(--muted)]">
-        Žádné hodnoty somatotypu.
-      </p>
-    );
-  }
-  return (
-    <ul className="divide-y divide-[var(--line)]">
-      {items.map((item) => (
-        <li
-          key={String(item.t)}
-          className="flex items-center justify-between gap-3 py-2.5 text-sm"
-        >
-          <span className="text-[var(--muted)]">
-            {new Intl.DateTimeFormat("cs-CZ", {
-              dateStyle: "medium",
-              timeStyle: "short",
-              timeZone: "Europe/Prague",
-            }).format(new Date(item.t))}
-          </span>
-          <span className="font-medium text-[var(--ink)]">{String(item.v)}</span>
-        </li>
-      ))}
-    </ul>
   );
 }
