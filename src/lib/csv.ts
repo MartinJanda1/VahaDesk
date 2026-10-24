@@ -9,7 +9,9 @@ export type ParsedMeasurement = {
 
 const HEADER_MAP: Record<string, ParamKey | "measuredAt"> = {
   datum: "measuredAt",
+  date: "measuredAt", // Senssunlife / EN export
   hmotnost: "weightKg",
+  weight: "weightKg",
   "tělesný tuk(%)": "bodyFatPct",
   "telesny tuk(%)": "bodyFatPct",
   "svaly(%)": "musclePct",
