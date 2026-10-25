@@ -72,15 +72,21 @@ function firstNumeric(
  * Smooth ideal trajectories aligned to each measurement timestamp.
  * Weight: startWeight → BMI 22 over 52 weeks.
  * Composition: first measured value → healthier band along the same progress.
+ *
+ * `anchorMeasurements` = full history for start/baseline (e.g. when chart is period-filtered).
  */
 export function buildIdealSeries(input: {
   heightCm: number;
   measurements: Measurement[];
+  anchorMeasurements?: Measurement[];
 }): { points: IdealPoint[]; applicable: boolean; reason?: string } {
   const sorted = [...input.measurements].sort(
     (a, b) => msOf(a.measuredAt) - msOf(b.measuredAt),
   );
-  const startRow = sorted.find(
+  const anchor = [...(input.anchorMeasurements ?? input.measurements)].sort(
+    (a, b) => msOf(a.measuredAt) - msOf(b.measuredAt),
+  );
+  const startRow = anchor.find(
     (m) => typeof m.weightKg === "number" && Number.isFinite(m.weightKg),
   );
   if (!startRow || typeof startRow.weightKg !== "number") {
@@ -103,9 +109,9 @@ export function buildIdealSeries(input: {
     };
   }
 
-  const startFat = firstNumeric(sorted, "bodyFatPct");
-  const startMuscle = firstNumeric(sorted, "musclePct");
-  const startWater = firstNumeric(sorted, "waterPct");
+  const startFat = firstNumeric(anchor, "bodyFatPct");
+  const startMuscle = firstNumeric(anchor, "musclePct");
+  const startWater = firstNumeric(anchor, "waterPct");
 
   const targetFat = 22;
   const targetMuscle =
@@ -152,12 +158,17 @@ export function compareToIdeal(input: {
   points: IdealPoint[];
   applicable: boolean;
   reason?: string;
+  /** Full history for pace baseline; defaults to measurements. */
+  anchorMeasurements?: Measurement[];
 }): IdealComparison {
   const targetWeightKg = idealWeightKg(input.heightCm);
   const sorted = [...input.measurements].sort(
     (a, b) => msOf(a.measuredAt) - msOf(b.measuredAt),
   );
-  const startRow = sorted.find(
+  const anchor = [...(input.anchorMeasurements ?? input.measurements)].sort(
+    (a, b) => msOf(a.measuredAt) - msOf(b.measuredAt),
+  );
+  const startRow = anchor.find(
     (m) => typeof m.weightKg === "number" && Number.isFinite(m.weightKg),
   );
   const startWeightKg = startRow?.weightKg ?? targetWeightKg;
@@ -194,8 +205,48 @@ export function compareToIdeal(input: {
 
   const latest = [...sorted].reverse().find(
     (m) => typeof m.weightKg === "number",
-  )!;
-  const latestIdeal = byT.get(msOf(latest.measuredAt))!;
+  );
+  if (!latest) {
+    return {
+      applicable: false,
+      reason: "V zvoleném období chybí měření hmotnosti.",
+      targetWeightKg,
+      startWeightKg,
+      startAt,
+      latestActualKg: null,
+      latestIdealKg: null,
+      latestDeltaKg: null,
+      avgDeltaKg: null,
+      userKgPerWeek: null,
+      idealKgPerWeek: null,
+      status: "atGoal",
+      statusText: "V zvoleném období chybí měření hmotnosti.",
+      summaryText: "V zvoleném období chybí měření hmotnosti.",
+      compositionNote: null,
+    };
+  }
+
+  const latestIdeal = byT.get(msOf(latest.measuredAt));
+  if (!latestIdeal) {
+    return {
+      applicable: false,
+      reason: input.reason ?? "Ideální křivka není k dispozici.",
+      targetWeightKg,
+      startWeightKg,
+      startAt,
+      latestActualKg: null,
+      latestIdealKg: null,
+      latestDeltaKg: null,
+      avgDeltaKg: null,
+      userKgPerWeek: null,
+      idealKgPerWeek: null,
+      status: "atGoal",
+      statusText: input.reason ?? "Ideální křivka není k dispozici.",
+      summaryText: input.reason ?? "Ideální křivka není k dispozici.",
+      compositionNote: null,
+    };
+  }
+
   const latestActualKg = latest.weightKg as number;
   const latestIdealKg = latestIdeal.idealWeightKg;
   const latestDeltaKg = latestActualKg - latestIdealKg;
@@ -205,12 +256,22 @@ export function compareToIdeal(input: {
         10
       : null;
 
-  const elapsedMs = msOf(latest.measuredAt) - startAt;
+  // Pace vs ideal over the visible window (first→last in filtered set).
+  const windowStart = sorted.find(
+    (m) => typeof m.weightKg === "number" && Number.isFinite(m.weightKg),
+  )!;
+  const windowStartKg = windowStart.weightKg as number;
+  const windowStartIdeal = byT.get(msOf(windowStart.measuredAt));
+  const elapsedMs = msOf(latest.measuredAt) - msOf(windowStart.measuredAt);
   const weeks = Math.max(elapsedMs / (7 * 86400000), 1 / 7);
   const userKgPerWeek =
-    Math.round(((latestActualKg - startWeightKg) / weeks) * 100) / 100;
+    Math.round(((latestActualKg - windowStartKg) / weeks) * 100) / 100;
   const idealKgPerWeek =
-    Math.round(((latestIdealKg - startWeightKg) / weeks) * 100) / 100;
+    windowStartIdeal != null
+      ? Math.round(
+          ((latestIdealKg - windowStartIdeal.idealWeightKg) / weeks) * 100,
+        ) / 100
+      : Math.round(((latestIdealKg - startWeightKg) / weeks) * 100) / 100;
 
   let status: IdealPaceStatus = "onTrack";
   let statusText = "Tempo hubnutí je v doporučeném pásmu.";

@@ -1,4 +1,12 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import type { Measurement, Profile } from "@/db/schema";
+import {
+  periodCaption,
+  prepareMeasurementsForPeriod,
+  type ChartPeriod,
+} from "@/lib/chart-period";
 import {
   buildIdealSeries,
   compareToIdeal,
@@ -8,6 +16,7 @@ import {
 import { PARAM_META, type ParamKey } from "@/lib/params";
 import { formatDateTime } from "@/lib/format";
 import type { SeriesDef, SeriesPoint } from "./charts/TimeSeriesChart";
+import { ChartPeriodToggle } from "./ChartPeriodToggle";
 import { ImportCsvForm } from "./ImportCsvForm";
 import { IdealSummary } from "./IdealSummary";
 import { ChartPanel, ParamGrid } from "./ParamSection";
@@ -38,21 +47,33 @@ export function Dashboard({
   profile: Profile;
   measurements: Measurement[];
 }) {
-  const baseData = toSeries(measurements);
-  const ideal = buildIdealSeries({
-    heightCm: profile.heightCm,
-    measurements,
-  });
-  const data = ideal.applicable
-    ? mergeIdealIntoSeries(baseData, ideal.points)
-    : baseData;
-  const comparison = compareToIdeal({
-    heightCm: profile.heightCm,
-    measurements,
-    points: ideal.points,
-    applicable: ideal.applicable,
-    reason: ideal.reason,
-  });
+  const [period, setPeriod] = useState<ChartPeriod>("all");
+
+  const prepared = useMemo(
+    () => prepareMeasurementsForPeriod(measurements, period),
+    [measurements, period],
+  );
+
+  const { data, comparison, ideal } = useMemo(() => {
+    const idealBuilt = buildIdealSeries({
+      heightCm: profile.heightCm,
+      measurements: prepared.rows,
+      anchorMeasurements: measurements,
+    });
+    const baseData = toSeries(prepared.rows);
+    const merged = idealBuilt.applicable
+      ? mergeIdealIntoSeries(baseData, idealBuilt.points)
+      : baseData;
+    const cmp = compareToIdeal({
+      heightCm: profile.heightCm,
+      measurements: prepared.rows,
+      points: idealBuilt.points,
+      applicable: idealBuilt.applicable,
+      reason: idealBuilt.reason,
+      anchorMeasurements: measurements,
+    });
+    return { data: merged, comparison: cmp, ideal: idealBuilt };
+  }, [prepared.rows, measurements, profile.heightCm]);
 
   const weight = PARAM_META.filter((p) => p.section === "weight");
   const composition = PARAM_META.filter((p) => p.section === "composition");
@@ -62,18 +83,17 @@ export function Dashboard({
   const latest = measurements[measurements.length - 1];
   const latestSomatotype = latest?.somatotype?.trim() || null;
 
-  const weightIdealSeries: SeriesDef[] =
-    ideal.applicable
-      ? [
-          {
-            dataKey: "idealWeightKg",
-            name: "Ideál (BMI 22)",
-            color: IDEAL_SERIES_COLOR,
-            unit: "kg",
-            dashed: true,
-          },
-        ]
-      : [];
+  const weightIdealSeries: SeriesDef[] = ideal.applicable
+    ? [
+        {
+          dataKey: "idealWeightKg",
+          name: "Ideál (BMI 22)",
+          color: IDEAL_SERIES_COLOR,
+          unit: "kg",
+          dashed: true,
+        },
+      ]
+    : [];
 
   const compositionIdealSeries: SeriesDef[] = [];
   if (ideal.applicable && ideal.points.some((p) => p.idealBodyFatPct != null)) {
@@ -103,6 +123,8 @@ export function Dashboard({
       dashed: true,
     });
   }
+
+  const caption = periodCaption(period, prepared.aggregation);
 
   return (
     <div className="mx-auto max-w-7xl space-y-10 px-4 pb-20 pt-2 sm:px-6 lg:px-8">
@@ -135,8 +157,8 @@ export function Dashboard({
             ) : null}
           </p>
           <p className="mt-2 max-w-xl text-sm text-[var(--muted)]">
-            Období: všechna měření. Jedno číslo ≠ verdikt — sledujte trendy.
-            Šedá přerušovaná čára = doporučená trajektorie k BMI 22.
+            Jedno číslo ≠ verdikt — sledujte trendy. Šedá přerušovaná čára =
+            doporučená trajektorie k BMI 22.
           </p>
         </div>
         <div className="shrink-0 lg:pt-6">
@@ -144,31 +166,39 @@ export function Dashboard({
         </div>
       </div>
 
-      <div className="animate-rise grid gap-4 lg:grid-cols-2 lg:items-stretch">
-        <ChartPanel
-          profileId={profile.id}
-          title="Hmotnost"
-          description="Nejpřímější signál. Denní výkyvy jsou normální."
-          meta={weight}
-          data={data}
-          height={300}
-          extraSeries={weightIdealSeries}
-          footer={<IdealSummary comparison={comparison} variant="weight" />}
+      <div className="animate-rise space-y-4">
+        <ChartPeriodToggle
+          value={period}
+          onChange={setPeriod}
+          caption={caption}
         />
-        <ChartPanel
-          profileId={profile.id}
-          title="Složení těla"
-          description="Tuk, svaly a voda — vysvětlují většinu denního šumu."
-          meta={composition}
-          data={data}
-          multi
-          height={300}
-          compactHelp
-          extraSeries={compositionIdealSeries}
-          footer={
-            <IdealSummary comparison={comparison} variant="composition" />
-          }
-        />
+
+        <div className="grid gap-4 lg:grid-cols-2 lg:items-stretch">
+          <ChartPanel
+            profileId={profile.id}
+            title="Hmotnost"
+            description="Nejpřímější signál. Denní výkyvy jsou normální."
+            meta={weight}
+            data={data}
+            height={300}
+            extraSeries={weightIdealSeries}
+            footer={<IdealSummary comparison={comparison} variant="weight" />}
+          />
+          <ChartPanel
+            profileId={profile.id}
+            title="Složení těla"
+            description="Tuk, svaly a voda — vysvětlují většinu denního šumu."
+            meta={composition}
+            data={data}
+            multi
+            height={300}
+            compactHelp
+            extraSeries={compositionIdealSeries}
+            footer={
+              <IdealSummary comparison={comparison} variant="composition" />
+            }
+          />
+        </div>
       </div>
 
       <ParamGrid
