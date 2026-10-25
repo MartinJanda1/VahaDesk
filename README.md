@@ -35,3 +35,4 @@ Nebo při prvním requestu aplikace vytvoří tabulky přes `ensureSchema()`.
 - Neon: `vahadesk-db` (Free) → `DATABASE_URL` pro Production / Preview / Development
 
 Privátní GitHub `MartinJanda1/VahaDesk` je zdroj pravdy. Automatický deploy po pushi vyžaduje, aby měl Vercel GitHub App přístup k tomuto repu (GitHub → Settings → Applications → Vercel → Repository access).
+
