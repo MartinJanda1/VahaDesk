@@ -55,8 +55,9 @@ export function Dashboard({
   );
 
   const { data, comparison, ideal } = useMemo(() => {
-    const idealBuilt = buildIdealSeries({
+      const idealBuilt = buildIdealSeries({
       heightCm: profile.heightCm,
+      age: profile.age,
       measurements: prepared.rows,
       anchorMeasurements: measurements,
     });
@@ -66,6 +67,7 @@ export function Dashboard({
       : baseData;
     const cmp = compareToIdeal({
       heightCm: profile.heightCm,
+      age: profile.age,
       measurements: prepared.rows,
       points: idealBuilt.points,
       applicable: idealBuilt.applicable,
@@ -73,7 +75,7 @@ export function Dashboard({
       anchorMeasurements: measurements,
     });
     return { data: merged, comparison: cmp, ideal: idealBuilt };
-  }, [prepared.rows, measurements, profile.heightCm]);
+  }, [prepared.rows, measurements, profile.heightCm, profile.age]);
 
   const weight = PARAM_META.filter((p) => p.section === "weight");
   const composition = PARAM_META.filter((p) => p.section === "composition");

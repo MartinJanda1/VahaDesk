@@ -1,4 +1,5 @@
 import type { Measurement } from "@/db/schema";
+import type { ParamKey } from "@/lib/params";
 
 /** Mid healthy BMI used as weight-loss target. */
 export const IDEAL_BMI = 22;
@@ -9,10 +10,17 @@ const RATE_TOLERANCE_KG_PER_WEEK = 0.25;
 
 export const IDEAL_SERIES_COLOR = "#a8a29e";
 
+/** Chart dataKey for a param's ideal overlay. */
+export function idealChartKey(param: ParamKey): string {
+  return `ideal__${param}`;
+}
+
 export type IdealPaceStatus = "onTrack" | "tooSlow" | "tooFast" | "atGoal";
 
 export type IdealPoint = {
   t: number;
+  byParam: Partial<Record<ParamKey, number>>;
+  /** Convenience aliases used by dashboard weight summary */
   idealWeightKg: number;
   idealBodyFatPct: number | null;
   idealMusclePct: number | null;
@@ -47,7 +55,6 @@ function msOf(value: Date | string): number {
   return value instanceof Date ? value.getTime() : new Date(value).getTime();
 }
 
-/** Linear progress 0..1 over the 52-week horizon (clamped). */
 function progressAt(elapsedMs: number): number {
   const horizonMs = IDEAL_HORIZON_WEEKS * 7 * 86400000;
   return Math.min(1, Math.max(0, elapsedMs / horizonMs));
@@ -55,6 +62,13 @@ function progressAt(elapsedMs: number): number {
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
+}
+
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
 }
 
 function firstNumeric(
@@ -68,18 +82,86 @@ function firstNumeric(
   return null;
 }
 
+function mifflinBmr(weightKg: number, heightCm: number, age: number): number {
+  return Math.round(10 * weightKg + 6.25 * heightCm - 5 * age + 5);
+}
+
+type TargetCtx = {
+  heightCm: number;
+  age: number;
+  targetWeight: number;
+  startWeight: number;
+};
+
+/** Orientational end targets at progress=1 (52 weeks). */
+function targetFor(
+  key: ParamKey,
+  start: number,
+  ctx: TargetCtx,
+): number | null {
+  switch (key) {
+    case "weightKg":
+      return Math.min(start, ctx.targetWeight);
+    case "bodyFatPct":
+      return Math.min(start, 22);
+    case "musclePct":
+      return Math.min(70, Math.max(start, start + 6));
+    case "waterPct":
+      return Math.min(56, Math.max(start, start + 5));
+    case "proteinPct":
+      return Math.min(15, Math.max(start, 13));
+    case "bmi":
+      return Math.min(start, IDEAL_BMI);
+    case "bmrKcal":
+      return mifflinBmr(ctx.targetWeight, ctx.heightCm, ctx.age);
+    case "activeMassKg": {
+      const lean = ctx.targetWeight * (1 - 0.22);
+      return Math.max(start * 0.98, lean);
+    }
+    case "amrKcal":
+      return Math.round(
+        mifflinBmr(ctx.targetWeight, ctx.heightCm, ctx.age) * 1.54,
+      );
+    case "subcutaneousFatKg":
+      return round1(ctx.targetWeight * 0.22 * 0.82);
+    case "skeletalMuscleKg":
+      return Math.max(start, start * 1.03);
+    case "visceralFatIndex":
+      return Math.min(start, 9);
+    case "bonePct":
+    case "somatotype":
+      return null;
+    default:
+      return null;
+  }
+}
+
+const OVERLAY_PARAMS: ParamKey[] = [
+  "weightKg",
+  "bodyFatPct",
+  "musclePct",
+  "waterPct",
+  "proteinPct",
+  "bmi",
+  "bmrKcal",
+  "activeMassKg",
+  "amrKcal",
+  "subcutaneousFatKg",
+  "skeletalMuscleKg",
+  "visceralFatIndex",
+];
+
 /**
  * Smooth ideal trajectories aligned to each measurement timestamp.
- * Weight: startWeight → BMI 22 over 52 weeks.
- * Composition: first measured value → healthier band along the same progress.
- *
- * `anchorMeasurements` = full history for start/baseline (e.g. when chart is period-filtered).
+ * Weight / BMI → BMI 22; composition and related metrics move toward healthier bands.
  */
 export function buildIdealSeries(input: {
   heightCm: number;
+  age?: number;
   measurements: Measurement[];
   anchorMeasurements?: Measurement[];
 }): { points: IdealPoint[]; applicable: boolean; reason?: string } {
+  const age = input.age ?? 40;
   const sorted = [...input.measurements].sort(
     (a, b) => msOf(a.measuredAt) - msOf(b.measuredAt),
   );
@@ -99,43 +181,54 @@ export function buildIdealSeries(input: {
 
   const startWeight = startRow.weightKg;
   const startAt = msOf(startRow.measuredAt);
-  const target = idealWeightKg(input.heightCm);
+  const targetWeight = idealWeightKg(input.heightCm);
+  const ctx: TargetCtx = {
+    heightCm: input.heightCm,
+    age,
+    targetWeight,
+    startWeight,
+  };
 
-  if (startWeight <= target) {
-    return {
-      points: [],
-      applicable: false,
-      reason: `Hmotnost je už na nebo pod cílem BMI ${IDEAL_BMI} (${target} kg). Ideální křivka hubnutí se nezobrazuje.`,
-    };
+  const starts = new Map<ParamKey, number>();
+  for (const key of OVERLAY_PARAMS) {
+    const s = firstNumeric(anchor, key);
+    if (s != null) starts.set(key, s);
   }
-
-  const startFat = firstNumeric(anchor, "bodyFatPct");
-  const startMuscle = firstNumeric(anchor, "musclePct");
-  const startWater = firstNumeric(anchor, "waterPct");
-
-  const targetFat = 22;
-  const targetMuscle =
-    startMuscle != null ? Math.min(70, startMuscle + 8) : null;
-  const targetWater = startWater != null ? Math.min(56, startWater + 6) : null;
+  // Weight always from first weight row
+  starts.set("weightKg", startWeight);
+  const startBmi = firstNumeric(anchor, "bmi");
+  if (startBmi == null) {
+    starts.set(
+      "bmi",
+      round1(startWeight / ((input.heightCm / 100) * (input.heightCm / 100))),
+    );
+  }
 
   const points: IdealPoint[] = sorted.map((m) => {
     const t = msOf(m.measuredAt);
     const p = progressAt(t - startAt);
+    const byParam: Partial<Record<ParamKey, number>> = {};
+
+    for (const key of OVERLAY_PARAMS) {
+      const start = starts.get(key);
+      if (start == null) continue;
+      const end = targetFor(key, start, ctx);
+      if (end == null) continue;
+      const v = lerp(start, end, p);
+      byParam[key] = key === "weightKg" || key === "bmrKcal" || key === "amrKcal"
+        ? key === "weightKg"
+          ? round2(v)
+          : Math.round(v)
+        : round1(v);
+    }
+
     return {
       t,
-      idealWeightKg: Math.round(lerp(startWeight, target, p) * 100) / 100,
-      idealBodyFatPct:
-        startFat != null
-          ? Math.round(lerp(startFat, targetFat, p) * 10) / 10
-          : null,
-      idealMusclePct:
-        startMuscle != null && targetMuscle != null
-          ? Math.round(lerp(startMuscle, targetMuscle, p) * 10) / 10
-          : null,
-      idealWaterPct:
-        startWater != null && targetWater != null
-          ? Math.round(lerp(startWater, targetWater, p) * 10) / 10
-          : null,
+      byParam,
+      idealWeightKg: byParam.weightKg ?? startWeight,
+      idealBodyFatPct: byParam.bodyFatPct ?? null,
+      idealMusclePct: byParam.musclePct ?? null,
+      idealWaterPct: byParam.waterPct ?? null,
     };
   });
 
@@ -154,11 +247,11 @@ function formatDeltaKg(delta: number): string {
 
 export function compareToIdeal(input: {
   heightCm: number;
+  age?: number;
   measurements: Measurement[];
   points: IdealPoint[];
   applicable: boolean;
   reason?: string;
-  /** Full history for pace baseline; defaults to measurements. */
   anchorMeasurements?: Measurement[];
 }): IdealComparison {
   const targetWeightKg = idealWeightKg(input.heightCm);
@@ -203,9 +296,9 @@ export function compareToIdeal(input: {
     deltas.push(m.weightKg - ideal.idealWeightKg);
   }
 
-  const latest = [...sorted].reverse().find(
-    (m) => typeof m.weightKg === "number",
-  );
+  const latest = [...sorted]
+    .reverse()
+    .find((m) => typeof m.weightKg === "number");
   if (!latest) {
     return {
       applicable: false,
@@ -256,7 +349,6 @@ export function compareToIdeal(input: {
         10
       : null;
 
-  // Pace vs ideal over the visible window (first→last in filtered set).
   const windowStart = sorted.find(
     (m) => typeof m.weightKg === "number" && Number.isFinite(m.weightKg),
   )!;
@@ -275,13 +367,14 @@ export function compareToIdeal(input: {
 
   let status: IdealPaceStatus = "onTrack";
   let statusText = "Tempo hubnutí je v doporučeném pásmu.";
-  if (latestActualKg <= targetWeightKg) {
+  if (latestActualKg <= targetWeightKg + 0.3) {
     status = "atGoal";
     statusText = `Cílová hmotnost kolem BMI ${IDEAL_BMI} (${targetWeightKg} kg) je dosažená.`;
+  } else if (startWeightKg <= targetWeightKg) {
+    status = "atGoal";
+    statusText = `Start už byl na nebo pod cílem BMI ${IDEAL_BMI}; ideál drží udržovací trajektorii.`;
   } else {
     const rateDiff = userKgPerWeek - idealKgPerWeek;
-    // Both rates are typically negative when losing weight.
-    // user more negative than ideal → too fast; less negative → too slow.
     if (rateDiff < -RATE_TOLERANCE_KG_PER_WEEK) {
       status = "tooFast";
       statusText =
@@ -300,9 +393,8 @@ export function compareToIdeal(input: {
 
   const summaryText = `K poslednímu měření: ${formatDeltaKg(latestDeltaKg)}. Cíl BMI ${IDEAL_BMI}: ${targetWeightKg} kg.${avgPart}`;
 
-  const lastFat = latestIdeal.idealBodyFatPct;
   const compositionNote =
-    lastFat != null
+    latestIdeal.idealBodyFatPct != null
       ? `Ideální složení sleduje stejný horizont: tuk směrem k ~22 %, svaly a voda mírně nahoru.`
       : null;
 
@@ -332,12 +424,18 @@ export function mergeIdealIntoSeries<
   return data.map((row) => {
     const ideal = byT.get(row.t);
     if (!ideal) return row;
-    return {
+    const next: T = {
       ...row,
       idealWeightKg: ideal.idealWeightKg,
       idealBodyFatPct: ideal.idealBodyFatPct,
       idealMusclePct: ideal.idealMusclePct,
       idealWaterPct: ideal.idealWaterPct,
     };
+    for (const [key, value] of Object.entries(ideal.byParam)) {
+      if (value == null) continue;
+      (next as Record<string, number | string | null>)[idealChartKey(key as ParamKey)] =
+        value;
+    }
+    return next;
   });
 }
