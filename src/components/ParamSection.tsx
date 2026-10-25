@@ -1,6 +1,11 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { ParamMeta } from "@/lib/params";
-import { TimeSeriesChart, type SeriesPoint } from "./charts/TimeSeriesChart";
+import {
+  TimeSeriesChart,
+  type SeriesDef,
+  type SeriesPoint,
+} from "./charts/TimeSeriesChart";
 
 export function ChartPanel({
   profileId,
@@ -11,6 +16,8 @@ export function ChartPanel({
   multi,
   height = 280,
   compactHelp,
+  extraSeries = [],
+  footer,
 }: {
   profileId: string;
   title: string;
@@ -20,8 +27,23 @@ export function ChartPanel({
   multi?: boolean;
   height?: number;
   compactHelp?: boolean;
+  extraSeries?: SeriesDef[];
+  footer?: ReactNode;
 }) {
   const numeric = meta.filter((m) => m.kind === "number");
+  const baseSeries: SeriesDef[] = multi
+    ? numeric.map((m) => ({
+        dataKey: m.key,
+        name: m.title,
+        color: m.color,
+        unit: m.unit,
+      }))
+    : numeric.slice(0, 1).map((m) => ({
+        dataKey: m.key,
+        name: m.title,
+        color: m.color,
+        unit: m.unit,
+      }));
 
   return (
     <div className="flex h-full flex-col rounded-2xl border border-[var(--line)] bg-white/55 p-4 shadow-[0_1px_0_rgba(68,48,28,0.05)] backdrop-blur-sm sm:p-5">
@@ -36,22 +58,9 @@ export function ChartPanel({
       <TimeSeriesChart
         data={data}
         height={height}
-        series={
-          multi
-            ? numeric.map((m) => ({
-                dataKey: m.key,
-                name: m.title,
-                color: m.color,
-                unit: m.unit,
-              }))
-            : numeric.slice(0, 1).map((m) => ({
-                dataKey: m.key,
-                name: m.title,
-                color: m.color,
-                unit: m.unit,
-              }))
-        }
+        series={[...baseSeries, ...extraSeries]}
       />
+      {footer}
       <div
         className={`mt-3 grid gap-2 ${
           compactHelp && meta.length > 1 ? "sm:grid-cols-1 lg:grid-cols-3" : ""

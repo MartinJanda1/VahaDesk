@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { DeleteProfileButton } from "@/components/DeleteProfileButton";
 import { SiteHeader } from "@/components/SiteHeader";
 import { listProfiles } from "@/db/store";
 import { formatDateTime } from "@/lib/format";
@@ -46,14 +47,14 @@ async function ProfileList() {
         {profiles.map((p, i) => (
           <li
             key={p.id}
-            className="animate-rise"
+            className="animate-rise flex items-stretch gap-1 rounded-2xl border border-[var(--line)] bg-white/55 transition hover:border-sky-500/40 hover:bg-white/80"
             style={{ animationDelay: `${80 + i * 60}ms` }}
           >
             <Link
               href={`/profiles/${p.id}`}
-              className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--line)] bg-white/55 px-5 py-4 transition hover:border-sky-500/40 hover:bg-white/80"
+              className="flex min-w-0 flex-1 items-center justify-between gap-4 px-5 py-4"
             >
-              <div>
+              <div className="min-w-0">
                 <p className="font-[family-name:var(--font-display)] text-xl text-[var(--ink)]">
                   {p.name}
                 </p>
@@ -62,8 +63,11 @@ async function ProfileList() {
                   {formatDateTime(new Date(p.createdAt))}
                 </p>
               </div>
-              <span className="text-sky-500">→</span>
+              <span className="shrink-0 text-sky-500">→</span>
             </Link>
+            <div className="flex items-center pr-3">
+              <DeleteProfileButton profileId={p.id} profileName={p.name} />
+            </div>
           </li>
         ))}
       </ul>

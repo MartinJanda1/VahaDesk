@@ -1,8 +1,15 @@
 import type { Measurement, Profile } from "@/db/schema";
+import {
+  buildIdealSeries,
+  compareToIdeal,
+  IDEAL_SERIES_COLOR,
+  mergeIdealIntoSeries,
+} from "@/lib/ideal-curve";
 import { PARAM_META, type ParamKey } from "@/lib/params";
 import { formatDateTime } from "@/lib/format";
-import type { SeriesPoint } from "./charts/TimeSeriesChart";
+import type { SeriesDef, SeriesPoint } from "./charts/TimeSeriesChart";
 import { ImportCsvForm } from "./ImportCsvForm";
+import { IdealSummary } from "./IdealSummary";
 import { ChartPanel, ParamGrid } from "./ParamSection";
 
 function toSeries(rows: Measurement[]): SeriesPoint[] {
@@ -31,7 +38,22 @@ export function Dashboard({
   profile: Profile;
   measurements: Measurement[];
 }) {
-  const data = toSeries(measurements);
+  const baseData = toSeries(measurements);
+  const ideal = buildIdealSeries({
+    heightCm: profile.heightCm,
+    measurements,
+  });
+  const data = ideal.applicable
+    ? mergeIdealIntoSeries(baseData, ideal.points)
+    : baseData;
+  const comparison = compareToIdeal({
+    heightCm: profile.heightCm,
+    measurements,
+    points: ideal.points,
+    applicable: ideal.applicable,
+    reason: ideal.reason,
+  });
+
   const weight = PARAM_META.filter((p) => p.section === "weight");
   const composition = PARAM_META.filter((p) => p.section === "composition");
   const other = PARAM_META.filter(
@@ -39,6 +61,48 @@ export function Dashboard({
   );
   const latest = measurements[measurements.length - 1];
   const latestSomatotype = latest?.somatotype?.trim() || null;
+
+  const weightIdealSeries: SeriesDef[] =
+    ideal.applicable
+      ? [
+          {
+            dataKey: "idealWeightKg",
+            name: "Ideál (BMI 22)",
+            color: IDEAL_SERIES_COLOR,
+            unit: "kg",
+            dashed: true,
+          },
+        ]
+      : [];
+
+  const compositionIdealSeries: SeriesDef[] = [];
+  if (ideal.applicable && ideal.points.some((p) => p.idealBodyFatPct != null)) {
+    compositionIdealSeries.push({
+      dataKey: "idealBodyFatPct",
+      name: "Ideál tuk",
+      color: IDEAL_SERIES_COLOR,
+      unit: "%",
+      dashed: true,
+    });
+  }
+  if (ideal.applicable && ideal.points.some((p) => p.idealMusclePct != null)) {
+    compositionIdealSeries.push({
+      dataKey: "idealMusclePct",
+      name: "Ideál svaly",
+      color: "#78716c",
+      unit: "%",
+      dashed: true,
+    });
+  }
+  if (ideal.applicable && ideal.points.some((p) => p.idealWaterPct != null)) {
+    compositionIdealSeries.push({
+      dataKey: "idealWaterPct",
+      name: "Ideál voda",
+      color: "#d6d3d1",
+      unit: "%",
+      dashed: true,
+    });
+  }
 
   return (
     <div className="mx-auto max-w-7xl space-y-10 px-4 pb-20 pt-2 sm:px-6 lg:px-8">
@@ -72,6 +136,7 @@ export function Dashboard({
           </p>
           <p className="mt-2 max-w-xl text-sm text-[var(--muted)]">
             Období: všechna měření. Jedno číslo ≠ verdikt — sledujte trendy.
+            Šedá přerušovaná čára = doporučená trajektorie k BMI 22.
           </p>
         </div>
         <div className="shrink-0 lg:pt-6">
@@ -87,6 +152,8 @@ export function Dashboard({
           meta={weight}
           data={data}
           height={300}
+          extraSeries={weightIdealSeries}
+          footer={<IdealSummary comparison={comparison} variant="weight" />}
         />
         <ChartPanel
           profileId={profile.id}
@@ -97,6 +164,10 @@ export function Dashboard({
           multi
           height={300}
           compactHelp
+          extraSeries={compositionIdealSeries}
+          footer={
+            <IdealSummary comparison={comparison} variant="composition" />
+          }
         />
       </div>
 

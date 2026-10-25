@@ -12,9 +12,45 @@ import {
   type Profile,
 } from "./schema";
 
+export type ImportDuplicateMode = "overwrite" | "skip";
+
+export type ImportMeasurementsResult = {
+  inserted: number;
+  updated: number;
+  skipped: number;
+};
+
 export type MeasurementInput = Omit<NewMeasurement, "id" | "profileId"> & {
   profileId?: string;
 };
+
+type MeasurementRow = Omit<NewMeasurement, "id" | "profileId">;
+
+function measuredAtMs(value: Date | string): number {
+  return value instanceof Date ? value.getTime() : new Date(value).getTime();
+}
+
+function toMeasurementFields(r: MeasurementRow) {
+  return {
+    measuredAt:
+      r.measuredAt instanceof Date ? r.measuredAt : new Date(r.measuredAt!),
+    weightKg: r.weightKg ?? null,
+    bodyFatPct: r.bodyFatPct ?? null,
+    musclePct: r.musclePct ?? null,
+    proteinPct: r.proteinPct ?? null,
+    bonePct: r.bonePct ?? null,
+    bmi: r.bmi ?? null,
+    bmrKcal: r.bmrKcal ?? null,
+    waterPct: r.waterPct ?? null,
+    activeMassKg: r.activeMassKg ?? null,
+    amrKcal: r.amrKcal ?? null,
+    subcutaneousFatKg: r.subcutaneousFatKg ?? null,
+    skeletalMuscleKg: r.skeletalMuscleKg ?? null,
+    visceralFatIndex: r.visceralFatIndex ?? null,
+    somatotype: r.somatotype ?? null,
+    rawJson: r.rawJson ?? null,
+  };
+}
 
 type FileStore = {
   profiles: Profile[];
@@ -108,6 +144,23 @@ export async function createProfile(input: {
   return profile;
 }
 
+export async function deleteProfile(id: string): Promise<boolean> {
+  if (hasDatabaseUrl()) {
+    const rows = await getDb()
+      .delete(profiles)
+      .where(eq(profiles.id, id))
+      .returning({ id: profiles.id });
+    return rows.length > 0;
+  }
+  const store = await readFileStore();
+  const before = store.profiles.length;
+  store.profiles = store.profiles.filter((p) => p.id !== id);
+  if (store.profiles.length === before) return false;
+  store.measurements = store.measurements.filter((m) => m.profileId !== id);
+  await writeFileStore(store);
+  return true;
+}
+
 export async function listMeasurements(
   profileId: string,
 ): Promise<Measurement[]> {
@@ -126,7 +179,7 @@ export async function listMeasurements(
 
 export async function insertMeasurements(
   profileId: string,
-  rows: Omit<NewMeasurement, "id" | "profileId">[],
+  rows: MeasurementRow[],
 ): Promise<number> {
   if (!rows.length) return 0;
   if (hasDatabaseUrl()) {
@@ -140,26 +193,91 @@ export async function insertMeasurements(
     store.measurements.push({
       id: randomUUID(),
       profileId,
-      measuredAt: r.measuredAt instanceof Date ? r.measuredAt : new Date(r.measuredAt!),
-      weightKg: r.weightKg ?? null,
-      bodyFatPct: r.bodyFatPct ?? null,
-      musclePct: r.musclePct ?? null,
-      proteinPct: r.proteinPct ?? null,
-      bonePct: r.bonePct ?? null,
-      bmi: r.bmi ?? null,
-      bmrKcal: r.bmrKcal ?? null,
-      waterPct: r.waterPct ?? null,
-      activeMassKg: r.activeMassKg ?? null,
-      amrKcal: r.amrKcal ?? null,
-      subcutaneousFatKg: r.subcutaneousFatKg ?? null,
-      skeletalMuscleKg: r.skeletalMuscleKg ?? null,
-      visceralFatIndex: r.visceralFatIndex ?? null,
-      somatotype: r.somatotype ?? null,
-      rawJson: r.rawJson ?? null,
+      ...toMeasurementFields(r),
     });
   }
   await writeFileStore(store);
   return rows.length;
+}
+
+export async function importMeasurements(
+  profileId: string,
+  rows: MeasurementRow[],
+  mode: ImportDuplicateMode,
+): Promise<ImportMeasurementsResult> {
+  const result: ImportMeasurementsResult = {
+    inserted: 0,
+    updated: 0,
+    skipped: 0,
+  };
+  if (!rows.length) return result;
+
+  const existing = await listMeasurements(profileId);
+  const byTime = new Map<number, Measurement>();
+  for (const m of existing) {
+    byTime.set(measuredAtMs(m.measuredAt), m);
+  }
+
+  type MeasurementFields = ReturnType<typeof toMeasurementFields>;
+  const toInsert: MeasurementFields[] = [];
+  const toUpdate: { id: string; fields: MeasurementFields }[] = [];
+
+  for (const row of rows) {
+    const fields = toMeasurementFields(row);
+    const existingRow = byTime.get(measuredAtMs(fields.measuredAt));
+    if (!existingRow) {
+      toInsert.push(fields);
+      continue;
+    }
+    if (mode === "skip") {
+      result.skipped += 1;
+      continue;
+    }
+    toUpdate.push({ id: existingRow.id, fields });
+  }
+
+  if (hasDatabaseUrl()) {
+    const db = getDb();
+    if (toInsert.length) {
+      await db
+        .insert(measurements)
+        .values(toInsert.map((r) => ({ ...r, profileId })));
+      result.inserted = toInsert.length;
+    }
+    for (const item of toUpdate) {
+      await db
+        .update(measurements)
+        .set(item.fields)
+        .where(eq(measurements.id, item.id));
+    }
+    result.updated = toUpdate.length;
+    return result;
+  }
+
+  const store = await readFileStore();
+  for (const fields of toInsert) {
+    store.measurements.push({
+      id: randomUUID(),
+      profileId,
+      ...fields,
+    });
+  }
+  result.inserted = toInsert.length;
+
+  for (const item of toUpdate) {
+    const idx = store.measurements.findIndex((m) => m.id === item.id);
+    if (idx < 0) continue;
+    store.measurements[idx] = {
+      ...store.measurements[idx]!,
+      ...item.fields,
+    };
+  }
+  result.updated = toUpdate.length;
+
+  if (toInsert.length || toUpdate.length) {
+    await writeFileStore(store);
+  }
+  return result;
 }
 
 export async function ensureSchema(): Promise<void> {
@@ -195,5 +313,9 @@ export async function ensureSchema(): Promise<void> {
       somatotype text,
       raw_json jsonb
     )
+  `;
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS measurements_profile_measured_at_uidx
+    ON measurements (profile_id, measured_at)
   `;
 }

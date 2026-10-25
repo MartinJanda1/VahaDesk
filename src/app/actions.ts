@@ -2,17 +2,51 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { parseFitScaleCsv } from "@/lib/csv";
+import { parseFitScaleCsv, type ParsedMeasurement } from "@/lib/csv";
 import {
   createProfile,
+  deleteProfile,
   ensureSchema,
+  importMeasurements,
   insertMeasurements,
+  listMeasurements,
+  type ImportDuplicateMode,
 } from "@/db/store";
 
 export type ActionState = {
   ok: boolean;
   message?: string;
+  needsDecision?: boolean;
+  newCount?: number;
+  duplicateCount?: number;
 };
+
+function toMeasurementRows(rows: ParsedMeasurement[]) {
+  return rows.map((r) => ({
+    measuredAt: r.measuredAt,
+    weightKg: (r.values.weightKg as number | null) ?? null,
+    bodyFatPct: (r.values.bodyFatPct as number | null) ?? null,
+    musclePct: (r.values.musclePct as number | null) ?? null,
+    proteinPct: (r.values.proteinPct as number | null) ?? null,
+    bonePct: (r.values.bonePct as number | null) ?? null,
+    bmi: (r.values.bmi as number | null) ?? null,
+    bmrKcal: (r.values.bmrKcal as number | null) ?? null,
+    waterPct: (r.values.waterPct as number | null) ?? null,
+    activeMassKg: (r.values.activeMassKg as number | null) ?? null,
+    amrKcal: (r.values.amrKcal as number | null) ?? null,
+    subcutaneousFatKg: (r.values.subcutaneousFatKg as number | null) ?? null,
+    skeletalMuscleKg: (r.values.skeletalMuscleKg as number | null) ?? null,
+    visceralFatIndex: (r.values.visceralFatIndex as number | null) ?? null,
+    somatotype: (r.values.somatotype as string | null) ?? null,
+    rawJson: r.raw,
+  }));
+}
+
+function parseDuplicateMode(formData: FormData): ImportDuplicateMode | null {
+  const raw = formData.get("duplicateMode");
+  if (raw === "overwrite" || raw === "skip") return raw;
+  return null;
+}
 
 function num(formData: FormData, key: string): number | null {
   const v = formData.get(key);
@@ -60,32 +94,23 @@ export async function createProfileAction(
   });
 
   if (parsedRows.length) {
-    await insertMeasurements(
-      profile.id,
-      parsedRows.map((r) => ({
-        measuredAt: r.measuredAt,
-        weightKg: (r.values.weightKg as number | null) ?? null,
-        bodyFatPct: (r.values.bodyFatPct as number | null) ?? null,
-        musclePct: (r.values.musclePct as number | null) ?? null,
-        proteinPct: (r.values.proteinPct as number | null) ?? null,
-        bonePct: (r.values.bonePct as number | null) ?? null,
-        bmi: (r.values.bmi as number | null) ?? null,
-        bmrKcal: (r.values.bmrKcal as number | null) ?? null,
-        waterPct: (r.values.waterPct as number | null) ?? null,
-        activeMassKg: (r.values.activeMassKg as number | null) ?? null,
-        amrKcal: (r.values.amrKcal as number | null) ?? null,
-        subcutaneousFatKg:
-          (r.values.subcutaneousFatKg as number | null) ?? null,
-        skeletalMuscleKg: (r.values.skeletalMuscleKg as number | null) ?? null,
-        visceralFatIndex: (r.values.visceralFatIndex as number | null) ?? null,
-        somatotype: (r.values.somatotype as string | null) ?? null,
-        rawJson: r.raw,
-      })),
-    );
+    await insertMeasurements(profile.id, toMeasurementRows(parsedRows));
   }
 
   revalidatePath("/");
   redirect(`/profiles/${profile.id}`);
+}
+
+export async function deleteProfileAction(
+  profileId: string,
+): Promise<ActionState> {
+  await ensureSchema();
+  const ok = await deleteProfile(profileId);
+  if (!ok) {
+    return { ok: false, message: "Profil se nepodařilo smazat." };
+  }
+  revalidatePath("/");
+  return { ok: true, message: "Profil byl smazán." };
 }
 
 export async function importCsvAction(
@@ -106,27 +131,53 @@ export async function importCsvAction(
       message: errors[0] ?? "CSV neobsahuje platná měření.",
     };
   }
-  const n = await insertMeasurements(
-    profileId,
-    rows.map((r) => ({
-      measuredAt: r.measuredAt,
-      weightKg: (r.values.weightKg as number | null) ?? null,
-      bodyFatPct: (r.values.bodyFatPct as number | null) ?? null,
-      musclePct: (r.values.musclePct as number | null) ?? null,
-      proteinPct: (r.values.proteinPct as number | null) ?? null,
-      bonePct: (r.values.bonePct as number | null) ?? null,
-      bmi: (r.values.bmi as number | null) ?? null,
-      bmrKcal: (r.values.bmrKcal as number | null) ?? null,
-      waterPct: (r.values.waterPct as number | null) ?? null,
-      activeMassKg: (r.values.activeMassKg as number | null) ?? null,
-      amrKcal: (r.values.amrKcal as number | null) ?? null,
-      subcutaneousFatKg: (r.values.subcutaneousFatKg as number | null) ?? null,
-      skeletalMuscleKg: (r.values.skeletalMuscleKg as number | null) ?? null,
-      visceralFatIndex: (r.values.visceralFatIndex as number | null) ?? null,
-      somatotype: (r.values.somatotype as string | null) ?? null,
-      rawJson: r.raw,
-    })),
+
+  const mapped = toMeasurementRows(rows);
+  const existing = await listMeasurements(profileId);
+  const existingTimes = new Set(
+    existing.map((m) =>
+      m.measuredAt instanceof Date
+        ? m.measuredAt.getTime()
+        : new Date(m.measuredAt).getTime(),
+    ),
   );
+
+  let newCount = 0;
+  let duplicateCount = 0;
+  for (const row of mapped) {
+    const t =
+      row.measuredAt instanceof Date
+        ? row.measuredAt.getTime()
+        : new Date(row.measuredAt).getTime();
+    if (existingTimes.has(t)) duplicateCount += 1;
+    else newCount += 1;
+  }
+
+  const mode = parseDuplicateMode(formData);
+  if (!mode && duplicateCount > 0) {
+    return {
+      ok: true,
+      needsDecision: true,
+      newCount,
+      duplicateCount,
+      message: `CSV obsahuje ${newCount} nových a ${duplicateCount} již existujících měření (stejný čas).`,
+    };
+  }
+
+  const result = await importMeasurements(profileId, mapped, mode ?? "skip");
   revalidatePath(`/profiles/${profileId}`);
-  return { ok: true, message: `Importováno ${n} měření.` };
+
+  if (result.updated > 0) {
+    return {
+      ok: true,
+      message: `Přidáno ${result.inserted}, přepsáno ${result.updated}.`,
+    };
+  }
+  if (result.skipped > 0) {
+    return {
+      ok: true,
+      message: `Přidáno ${result.inserted} (${result.skipped} duplicit přeskočeno).`,
+    };
+  }
+  return { ok: true, message: `Přidáno ${result.inserted} měření.` };
 }

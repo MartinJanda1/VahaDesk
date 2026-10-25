@@ -18,11 +18,13 @@ export type SeriesPoint = {
   [key: string]: number | string | null;
 };
 
-type SeriesDef = {
+export type SeriesDef = {
   dataKey: string;
   name: string;
   color: string;
   unit?: string;
+  /** Reference / ideal line styling */
+  dashed?: boolean;
 };
 
 export function TimeSeriesChart({
@@ -44,6 +46,8 @@ export function TimeSeriesChart({
       </div>
     );
   }
+
+  const showLegend = series.length > 1;
 
   return (
     <div style={{ width: "100%", height }} className="animate-fade-in">
@@ -75,7 +79,10 @@ export function TimeSeriesChart({
                 return [dataMin, dataMax];
               }
               const span = dataMax - dataMin;
-              const pad = span === 0 ? Math.max(Math.abs(dataMin) * 0.002, 0.05) : span * 0.12;
+              const pad =
+                span === 0
+                  ? Math.max(Math.abs(dataMin) * 0.002, 0.05)
+                  : span * 0.12;
               return [dataMin - pad, dataMax + pad];
             }}
           />
@@ -96,11 +103,12 @@ export function TimeSeriesChart({
             formatter={(value, name) => {
               const s = series.find((x) => x.name === name || x.dataKey === name);
               const unit = s?.unit ? ` ${s.unit}` : "";
-              const num = typeof value === "number" ? formatNumber(value) : String(value);
+              const num =
+                typeof value === "number" ? formatNumber(value) : String(value);
               return [`${num}${unit}`, s?.name ?? String(name)];
             }}
           />
-          {series.length > 1 ? (
+          {showLegend ? (
             <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
           ) : null}
           {series.map((s) => (
@@ -110,9 +118,14 @@ export function TimeSeriesChart({
               dataKey={s.dataKey}
               name={s.name}
               stroke={s.color}
-              strokeWidth={2.25}
-              dot={{ r: 3, strokeWidth: 0, fill: s.color }}
-              activeDot={{ r: 5 }}
+              strokeWidth={s.dashed ? 1.75 : 2.25}
+              strokeDasharray={s.dashed ? "6 4" : undefined}
+              dot={
+                s.dashed
+                  ? false
+                  : { r: 3, strokeWidth: 0, fill: s.color }
+              }
+              activeDot={s.dashed ? false : { r: 5 }}
               connectNulls
             />
           ))}
